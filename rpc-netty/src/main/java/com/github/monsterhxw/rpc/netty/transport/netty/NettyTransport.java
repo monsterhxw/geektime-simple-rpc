@@ -40,11 +40,11 @@ public class NettyTransport implements Transport {
 
     private final SocketAddress address;
 
-    private final ConcurrentHashMap<String/*address*/, ChannelFuture> channelTables = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String/* address */, ChannelFuture> channelTables = new ConcurrentHashMap<>();
 
     private final Lock lockChannelTables = new ReentrantLock();
 
-    private static final long LOCK_TIMEOUT_MILLIS = 3_000;
+    private static final long LOCK_TIMEOUT_MILLIS = 3_000L;
 
     public NettyTransport(SocketAddress address, int connectionTimeout) {
         this.address = address;
@@ -89,19 +89,19 @@ public class NettyTransport implements Transport {
         return null;
     }
 
-    private Channel getAndCreateChannel() throws InterruptedException {
-        ChannelFuture channelFuture = this.channelTables.get(this.address.toString());
+    private Channel getAndCreateChannel(SocketAddress address) throws InterruptedException {
+        ChannelFuture channelFuture = this.channelTables.get(address.toString());
         if (isChannelOK(channelFuture)) {
             return channelFuture.channel();
         }
-        return createChannel(this.address, this.connectionTimeout);
+        return createChannel(address);
     }
 
     private boolean isChannelOK(ChannelFuture channelFuture) {
         return null != channelFuture && null != channelFuture.channel() && channelFuture.channel().isActive();
     }
 
-    private Channel createChannel(SocketAddress address, int connectionTimeout) throws InterruptedException {
+    private Channel createChannel(SocketAddress address) throws InterruptedException {
         String addr = address.toString();
         ChannelFuture channelFuture = this.channelTables.get(addr);
         if (isChannelOK(channelFuture)) {
@@ -134,7 +134,7 @@ public class NettyTransport implements Transport {
             log.warn("createChannel: try lock channel table timeout, but timeout {} ms", LOCK_TIMEOUT_MILLIS);
         }
 
-        if (null != channelFuture && channelFuture.awaitUninterruptibly(connectionTimeout)) {
+        if (null != channelFuture && channelFuture.awaitUninterruptibly(this.connectionTimeout)) {
             if (isChannelOK(channelFuture)) {
                 log.info("createChannel: success to connect remote host {}", address);
                 return channelFuture.channel();
