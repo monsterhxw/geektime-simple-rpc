@@ -27,7 +27,7 @@ class RequestDecoderTest {
     private Command requestCommand;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         this.requestDecoder = new RequestDecoder();
         this.rpcRequest = CommandTestSupport.buildRpcRequest();
         this.requestCommand = CommandTestSupport.buildRequestCommand(rpcRequest);
@@ -37,15 +37,8 @@ class RequestDecoderTest {
         encodeRequestCommandToByteBuf(this.requestCommand, this.inByteBuf);
     }
 
-    private void encodeRequestCommandToByteBuf(Command requestCommand, ByteBuf inByteBuf) {
-        int lengthFieldSize = 4 + requestCommand.getHeader().length() + requestCommand.getPayload().length;
-        inByteBuf.writeInt(lengthFieldSize);
-
-        inByteBuf.writeInt(requestCommand.getHeader().getRequestId());
-        inByteBuf.writeInt(requestCommand.getHeader().getVersion());
-        inByteBuf.writeInt(requestCommand.getHeader().getType());
-
-        inByteBuf.writeBytes(requestCommand.getPayload());
+    private void encodeRequestCommandToByteBuf(Command requestCommand, ByteBuf inByteBuf) throws Exception {
+        new RequestEncoder().encode(null, requestCommand, inByteBuf);
     }
 
     @AfterEach
