@@ -9,12 +9,14 @@ import com.github.monsterhxw.rpc.netty.transport.RequestHandlerRegistry;
 import com.github.monsterhxw.rpc.netty.transport.Transport;
 import com.github.monsterhxw.rpc.netty.transport.TransportClient;
 import com.github.monsterhxw.rpc.netty.transport.TransportServer;
+import com.github.monsterhxw.rpc.netty.transport.exception.RemotingConnectionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -22,6 +24,8 @@ import java.util.concurrent.TimeoutException;
  * @since 2023/12/26
  */
 public class NettyRpcAccessPoint implements RpcAccessPoint {
+
+    private static final Logger log = LoggerFactory.getLogger(NettyRpcAccessPoint.class);
 
     private static final String DEFAULT_HOST = "127.0.0.1";
     private static final int DEFAULT_PORT = 9999;
@@ -31,7 +35,6 @@ public class NettyRpcAccessPoint implements RpcAccessPoint {
     private final URI uri;
 
     private TransportClient client;
-    private final ConcurrentHashMap<URI, Transport> TRANSPORT_MAP = new ConcurrentHashMap<>();
     private StubFactory stubFactory;
 
     private TransportServer server;
@@ -49,7 +52,13 @@ public class NettyRpcAccessPoint implements RpcAccessPoint {
 
     @Override
     public <T> T getRemoteService(URI uri, Class<T> serviceClass) {
-        Transport transport = getAndCreateTransport(uri);
+        Transport transport;
+        try {
+            initializeClient();
+            transport = client.createTransport(new InetSocketAddress(host, port), 3_000);
+        } catch (ServiceLoadException | RemotingConnectionException | InterruptedException | TimeoutException e) {
+            throw new RuntimeException(e);
+        }
         return createStub(transport, serviceClass);
     }
 
@@ -92,24 +101,11 @@ public class NettyRpcAccessPoint implements RpcAccessPoint {
         }
     }
 
-    private Transport getAndCreateTransport(URI uri) {
-        return TRANSPORT_MAP.computeIfAbsent(uri, __ -> createTransport());
-    }
-
     private void initializeClient() throws ServiceLoadException {
         synchronized (this) {
             if (client == null) {
                 client = ServiceSupport.load(TransportClient.class);
             }
-        }
-    }
-
-    private Transport createTransport() {
-        try {
-            initializeClient();
-            return client.createTransport(new InetSocketAddress(host, port), 30_000L);
-        } catch (InterruptedException | TimeoutException | ServiceLoadException e) {
-            throw new RuntimeException(e);
         }
     }
 

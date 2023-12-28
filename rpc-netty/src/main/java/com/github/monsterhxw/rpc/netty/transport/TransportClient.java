@@ -1,5 +1,7 @@
 package com.github.monsterhxw.rpc.netty.transport;
 
+import com.github.monsterhxw.rpc.netty.transport.exception.RemotingConnectionException;
+
 import java.net.SocketAddress;
 import java.util.concurrent.TimeoutException;
 
@@ -9,7 +11,7 @@ import java.util.concurrent.TimeoutException;
  */
 public interface TransportClient {
 
-    Transport createTransport(SocketAddress address, long connectionTimeout) throws InterruptedException, TimeoutException;
+    Transport createTransport(SocketAddress address, int connectionTimeout) throws InterruptedException, TimeoutException, RemotingConnectionException;
 
     void stop();
 }

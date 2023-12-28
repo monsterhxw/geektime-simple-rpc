@@ -14,6 +14,7 @@
         <module>rpc-netty</module>
         <module>server</module>
         <module>hello-service-api</module>
+        <module>client</module>
     </modules>
 
     <properties>
