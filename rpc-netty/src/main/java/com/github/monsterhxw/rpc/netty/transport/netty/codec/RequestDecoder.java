@@ -14,7 +14,7 @@ import java.util.List;
 public class RequestDecoder extends CommandDecoder {
 
     @Override
-    protected Header decodeHeader(ChannelHandlerContext ctx, ByteBuf inByteBuf) {
+    protected Header decodeHeader(ByteBuf inByteBuf) {
         int requestId = inByteBuf.readInt();
         int version = inByteBuf.readInt();
         int type = inByteBuf.readInt();

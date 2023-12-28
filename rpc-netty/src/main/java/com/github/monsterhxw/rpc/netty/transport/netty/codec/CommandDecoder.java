@@ -21,23 +21,23 @@ public abstract class CommandDecoder extends ByteToMessageDecoder {
         if (!inByteBuf.isReadable(LENGTH_FIELD_SIZE)) {
             return;
         }
-
         inByteBuf.markReaderIndex();
-        int len = inByteBuf.readInt() - LENGTH_FIELD_SIZE;
-
-        if (inByteBuf.readableBytes() < len) {
+        int lengthFieldValue = inByteBuf.readInt();
+        int dataLength = lengthFieldValue - LENGTH_FIELD_SIZE;
+        if (inByteBuf.readableBytes() < dataLength) {
             inByteBuf.resetReaderIndex();
             return;
         }
 
-        Header header = decodeHeader(ctx, inByteBuf);
-        int payloadLen = len - header.length();
-        byte[] payload = new byte[payloadLen];
+        Header header = decodeHeader(inByteBuf);
+        int payloadLength = dataLength - header.length();
+        byte[] payload = new byte[payloadLength];
         inByteBuf.readBytes(payload);
 
         Command command = new Command(header, payload);
+
         outList.add(command);
     }
 
-    protected abstract Header decodeHeader(ChannelHandlerContext ctx, ByteBuf inByteBuf);
+    protected abstract Header decodeHeader(ByteBuf inByteBuf);
 }

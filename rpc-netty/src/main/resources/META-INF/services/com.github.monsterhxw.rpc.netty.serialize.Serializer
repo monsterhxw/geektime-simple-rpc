@@ -1,1 +1,3 @@
 com.github.monsterhxw.rpc.netty.serialize.impl.MetadataSerializer
+com.github.monsterhxw.rpc.netty.serialize.impl.StringSerializer
+com.github.monsterhxw.rpc.netty.serialize.impl.RpcRequestSerializer
