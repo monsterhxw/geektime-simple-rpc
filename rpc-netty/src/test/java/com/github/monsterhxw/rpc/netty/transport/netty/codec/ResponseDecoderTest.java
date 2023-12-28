@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -29,7 +28,7 @@ class ResponseDecoderTest {
     private ByteBuf inByteBuf;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws Exception {
         this.responseDecoder = new ResponseDecoder();
 
         this.responseCommand = CommandTestSupport.buildResponseCommand(this.result);
@@ -39,22 +38,8 @@ class ResponseDecoderTest {
         encodeResponseCommandToByteBuf(this.responseCommand, this.inByteBuf);
     }
 
-    private void encodeResponseCommandToByteBuf(Command responseCommand, ByteBuf inByteBuf) {
-        int lengthFieldSize = 4 + responseCommand.getHeader().length() + responseCommand.getPayload().length;
-        inByteBuf.writeInt(lengthFieldSize);
-
-        inByteBuf.writeInt(responseCommand.getHeader().getRequestId());
-        inByteBuf.writeInt(responseCommand.getHeader().getVersion());
-        inByteBuf.writeInt(responseCommand.getHeader().getType());
-
-        ResponseHeader respHeader = (ResponseHeader) responseCommand.getHeader();
-        inByteBuf.writeInt(respHeader.getCode());
-
-        inByteBuf.writeInt(respHeader.getErrorLength());
-        byte[] errorBytes = respHeader.getError() == null ? new byte[0] : respHeader.getError().getBytes(StandardCharsets.UTF_8);
-        inByteBuf.writeBytes(errorBytes);
-
-        inByteBuf.writeBytes(responseCommand.getPayload());
+    private void encodeResponseCommandToByteBuf(Command responseCommand, ByteBuf inByteBuf) throws Exception {
+        new ResponseEncoder().encode(null, responseCommand, inByteBuf);
     }
 
     @AfterEach
