@@ -19,12 +19,18 @@ public class ResponseHeader extends Header {
     public ResponseHeader(int requestId, int version, int type, int code, String error) {
         super(requestId, version, type);
         this.code = code;
-        this.error = error;
+        if (null != error && !error.isEmpty()) {
+            this.error = error;
+        }
+    }
+
+    public int getErrorLength() {
+        return error == null ? 0 : error.getBytes(StandardCharsets.UTF_8).length;
     }
 
     @Override
     public int length() {
-        return super.length() + 4 + (error == null ? 0 : error.getBytes(StandardCharsets.UTF_8).length);
+        return super.length() + 4 + getErrorLength();
     }
 
     public int getCode() {

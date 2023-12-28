@@ -1,10 +1,8 @@
 package com.github.monsterhxw.rpc.netty.transport.netty.codec;
 
-import com.github.monsterhxw.rpc.netty.client.ServiceTypes;
 import com.github.monsterhxw.rpc.netty.client.stub.RpcRequest;
 import com.github.monsterhxw.rpc.netty.serialize.SerializeSupport;
 import com.github.monsterhxw.rpc.netty.transport.command.Command;
-import com.github.monsterhxw.rpc.netty.transport.command.Header;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import org.junit.jupiter.api.AfterEach;
@@ -13,7 +11,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 /**
  * @author huangxuewei
@@ -27,46 +26,32 @@ class RequestDecoderTest {
     private RpcRequest rpcRequest;
     private Command requestCommand;
 
-
     @BeforeEach
     void setUp() {
         this.requestDecoder = new RequestDecoder();
-        this.rpcRequest = buildRpcRequest();
-        this.requestCommand = buildRequestCommand(SerializeSupport.serialize(rpcRequest));
+        this.rpcRequest = CommandTestSupport.buildRpcRequest();
+        this.requestCommand = CommandTestSupport.buildRequestCommand(rpcRequest);
 
         this.inByteBuf = ByteBufAllocator.DEFAULT.ioBuffer();
 
+        encodeRequestCommandToByteBuf(this.requestCommand, this.inByteBuf);
+    }
+
+    private void encodeRequestCommandToByteBuf(Command requestCommand, ByteBuf inByteBuf) {
         int lengthFieldSize = 4 + requestCommand.getHeader().length() + requestCommand.getPayload().length;
-        this.inByteBuf.writeInt(lengthFieldSize);
+        inByteBuf.writeInt(lengthFieldSize);
 
-        this.inByteBuf.writeInt(requestCommand.getHeader().getRequestId());
-        this.inByteBuf.writeInt(requestCommand.getHeader().getVersion());
-        this.inByteBuf.writeInt(requestCommand.getHeader().getType());
+        inByteBuf.writeInt(requestCommand.getHeader().getRequestId());
+        inByteBuf.writeInt(requestCommand.getHeader().getVersion());
+        inByteBuf.writeInt(requestCommand.getHeader().getType());
 
-        this.inByteBuf.writeBytes(requestCommand.getPayload());
-    }
-
-    private Command buildRequestCommand(byte[] payload) {
-        int requestId = 0;
-        int version = 1;
-        int type = ServiceTypes.TYPE_RPC_REQUEST; // 0
-        Header requestHdr = new Header(requestId, version, type);
-        return new Command(requestHdr, payload);
-    }
-
-    private RpcRequest buildRpcRequest() {
-        String interfaceName = "com.github.monsterhxw.rpc.hello.service.api.HelloService";
-        String methodName = "hello";
-        String methodArg = "world";
-        byte[] serializedArguments = SerializeSupport.serialize(methodArg);
-        return new RpcRequest(interfaceName, methodName, serializedArguments);
+        inByteBuf.writeBytes(requestCommand.getPayload());
     }
 
     @AfterEach
     void tearDown() {
         this.inByteBuf.clear();
         this.inByteBuf = null;
-
         this.requestDecoder = null;
         this.rpcRequest = null;
         this.requestCommand = null;
@@ -98,7 +83,6 @@ class RequestDecoderTest {
         assertEquals(this.rpcRequest.getInterfaceName(), rpcRequest.getInterfaceName());
         assertEquals(this.rpcRequest.getMethodName(), rpcRequest.getMethodName());
         assertEquals(this.rpcRequest.getSerializedArguments().length, rpcRequest.getSerializedArguments().length);
-
 
         Object actualArgs = SerializeSupport.deserialize(rpcRequest.getSerializedArguments());
         assertNotNull(actualArgs);

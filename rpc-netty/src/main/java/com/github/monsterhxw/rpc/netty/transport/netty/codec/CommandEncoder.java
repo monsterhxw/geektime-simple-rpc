@@ -14,15 +14,15 @@ public abstract class CommandEncoder extends MessageToByteEncoder<Command> {
 
     @Override
     protected void encode(ChannelHandlerContext ctx, Command command, ByteBuf outByteBuf) throws Exception {
-        int lengthFieldSize = 4 + command.getHeader().length() + command.getPayload().length;
-        outByteBuf.writeInt(lengthFieldSize);
+        int lengthFieldValue = 4 + command.getHeader().length() + command.getPayload().length;
+        outByteBuf.writeInt(lengthFieldValue);
 
-        encodeHeader(ctx, command.getHeader(), outByteBuf);
+        encodeHeader(command.getHeader(), outByteBuf);
 
         outByteBuf.writeBytes(command.getPayload());
     }
 
-    protected void encodeHeader(ChannelHandlerContext ctx, Header header, ByteBuf outByteBuf) throws Exception {
+    protected void encodeHeader(Header header, ByteBuf outByteBuf) throws Exception {
         outByteBuf.writeInt(header.getRequestId());
         outByteBuf.writeInt(header.getVersion());
         outByteBuf.writeInt(header.getType());
