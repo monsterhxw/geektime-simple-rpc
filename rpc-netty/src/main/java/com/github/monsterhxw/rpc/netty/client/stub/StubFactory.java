@@ -1,4 +1,4 @@
-package com.github.monsterhxw.rpc.netty.client;
+package com.github.monsterhxw.rpc.netty.client.stub;
 
 import com.github.monsterhxw.rpc.netty.transport.Transport;
 

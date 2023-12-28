@@ -12,10 +12,6 @@ public class ResponseHeader extends Header {
 
     private String error;
 
-    public ResponseHeader(int requestId, int version, int type, Throwable throwable) {
-        this(requestId, version, type, Code.UNKNOWN_ERROR.getCode(), throwable.getMessage());
-    }
-
     public ResponseHeader(int requestId, int version, int type) {
         this(requestId, version, type, Code.SUCCESS.getCode(), null);
     }

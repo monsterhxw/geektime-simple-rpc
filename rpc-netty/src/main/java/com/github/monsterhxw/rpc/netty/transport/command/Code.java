@@ -9,8 +9,9 @@ import java.util.HashMap;
 public enum Code {
 
     SUCCESS(0, "SUCCESS"),
+    UNKNOWN_ERROR(-1, "UNKNOWN_ERROR"),
     NO_PROVIDER(-2, "NO_PROVIDER"),
-    UNKNOWN_ERROR(-1, "UNKNOWN_ERROR");
+    UNSUPPORTED_TYPE(-3, "UNSUPPORTED_TYPE");
 
     private static final HashMap<Integer, Code> CODES_TABLE = new HashMap<>();
 
@@ -55,4 +56,4 @@ public enum Code {
     public void setMessage(String message) {
         this.message = message;
     }
-}
+    }

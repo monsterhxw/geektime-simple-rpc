@@ -3,7 +3,7 @@ package com.github.monsterhxw.rpc.netty;
 import com.github.monsterhxw.rpc.api.RpcAccessPoint;
 import com.github.monsterhxw.rpc.api.spi.ServiceLoadException;
 import com.github.monsterhxw.rpc.api.spi.ServiceSupport;
-import com.github.monsterhxw.rpc.netty.client.StubFactory;
+import com.github.monsterhxw.rpc.netty.client.stub.StubFactory;
 import com.github.monsterhxw.rpc.netty.server.ServiceProviderRegistry;
 import com.github.monsterhxw.rpc.netty.transport.RequestHandlerRegistry;
 import com.github.monsterhxw.rpc.netty.transport.Transport;

@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RequestHandlerRegistry {
 
-    private static final Logger LOG = org.slf4j.LoggerFactory.getLogger(RequestHandlerRegistry.class);
+    private static final Logger log = org.slf4j.LoggerFactory.getLogger(RequestHandlerRegistry.class);
 
     private ConcurrentHashMap<Integer, RequestHandler> handlerMap = new ConcurrentHashMap<>();
 
@@ -29,7 +29,7 @@ public class RequestHandlerRegistry {
 
     public void register(RequestHandler requestHandler) {
         handlerMap.put(requestHandler.type(), requestHandler);
-        LOG.info("Load request handler, type: {}, class: {}.", requestHandler.type(), requestHandler.getClass().getCanonicalName());
+        log.info("Load request handler, type: {}, class: {}.", requestHandler.type(), requestHandler.getClass().getCanonicalName());
     }
 
     public RequestHandler get(int type) {

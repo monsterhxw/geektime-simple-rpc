@@ -7,6 +7,7 @@ import com.github.monsterhxw.rpc.hello.service.api.HelloService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -18,7 +19,7 @@ import java.net.URISyntaxException;
  */
 public class Bootstrap {
 
-    private static final Logger LOG = LoggerFactory.getLogger(Bootstrap.class);
+    private static final Logger log = LoggerFactory.getLogger(Bootstrap.class);
 
     private static final String TMP_DIR_ARG = "java.io.tmpdir";
 
@@ -29,32 +30,42 @@ public class Bootstrap {
         HelloService helloService = new HelloServiceImpl();
 
         NameService nameService = null;
+        Closeable closeable = null;
 
         try (RpcAccessPoint rpcAccessPoint = ServiceSupport.load(RpcAccessPoint.class)) {
             // add service to service provider registry
             rpcAccessPoint.addServiceProvider(helloService, HelloService.class);
-            LOG.info("Add service {} to service provider registry.", helloServiceName);
+            log.info("Add service {} to service provider registry.", helloServiceName);
 
             // register to name service
             nameService = getNameService(rpcAccessPoint);
             registerToNameService(nameService, helloServiceName, rpcAccessPoint.getServerUri());
 
-            URI uri = nameService.lookupService(helloServiceName);
-            LOG.info("Lookup service {} from name service: {}.", helloServiceName, uri);
             // start server
-//            rpcAccessPoint.startServer();
+            closeable = rpcAccessPoint.startServer();
+
+            log.info("Server started, please input any key to stop server.");
+            System.in.read();
+            log.info("Server stopped.");
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
             if (nameService != null) {
                 nameService.close();
             }
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
         }
     }
 
     private static NameService getNameService(RpcAccessPoint rpcAccessPoint) {
         URI nameServiceUri = getNameServiceUri(System.getProperty(TMP_DIR_ARG), NAME_SERVICE_FILE_NAME);
-        LOG.info("Name service uri: {}.", nameServiceUri);
+        log.info("Name service uri: {}.", nameServiceUri);
         return rpcAccessPoint.getNameService(nameServiceUri);
     }
 
@@ -69,7 +80,7 @@ public class Bootstrap {
 
     private static void registerToNameService(NameService nameService, String serviceName, URI serverUri) {
         assert nameService != null;
-        LOG.info("Register service {} (server uri: {}) to name service.", serviceName, serverUri);
+        log.info("Register service {} (server uri: {}) to name service.", serviceName, serverUri);
         try {
             nameService.registerService(serviceName, serverUri);
         } catch (IOException e) {
