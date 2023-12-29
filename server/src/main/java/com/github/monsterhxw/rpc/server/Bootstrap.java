@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Closeable;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -23,7 +22,7 @@ public class Bootstrap {
 
     private static final String TMP_DIR_ARG = "java.io.tmpdir";
 
-    private static final String NAME_SERVICE_FILE_NAME = "simple_rpc_name_service.data";
+    private static final String NAME_SERVICE_FILE_NAME = "simple_rpc_name_service.log";
 
     public static void main(String[] args) {
         String helloServiceName = HelloService.class.getCanonicalName();
@@ -86,10 +85,5 @@ public class Bootstrap {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static void cleanNameServiceFile() {
-        URI nameServiceUri = getNameServiceUri(System.getProperty(TMP_DIR_ARG), NAME_SERVICE_FILE_NAME);
-        new File(nameServiceUri).deleteOnExit();
     }
 }

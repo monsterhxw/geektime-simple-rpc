@@ -19,15 +19,14 @@ public class ClientBootstrap {
     private static final Logger log = LoggerFactory.getLogger(ClientBootstrap.class);
 
     private static final String TMP_DIR_ARG = "java.io.tmpdir";
-    private static final String NAME_SERVICE_FILE_NAME = "simple_rpc_name_service.data";
+    private static final String NAME_SERVICE_FILE_NAME = "simple_rpc_name_service.log";
 
     public static void main(String[] args) {
         String serviceName = HelloService.class.getCanonicalName();
-        NameService nameService = null;
 
         try (RpcAccessPoint rpcAccessPoint = ServiceSupport.load(RpcAccessPoint.class)) {
             // get name service
-            nameService = getNameService(rpcAccessPoint);
+            NameService nameService = getNameService(rpcAccessPoint);
             URI uri = nameService.lookupService(serviceName);
             assert uri != null;
             log.info("lookup {} uri: {}.", serviceName, uri);
@@ -37,25 +36,12 @@ public class ClientBootstrap {
             log.info("Get service stub: {}.", helloService);
 
             // remote call helloService#hello
-            String arg = "World!";
-            String res = helloService.hello(arg);
-            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
-
-            // remote call helloService#hello
-            arg = "Huang Xuewei";
-            res = helloService.hello(arg);
-            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
-
-            // remote call helloService#hello
-            arg = "Your Argument Here";
-            res = helloService.hello(arg);
-            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
+            invokeHelloService(helloService, "World!");
+            invokeHelloService(helloService, "Simple RPC!");
+            invokeHelloService(helloService, "Netty!");
+            invokeHelloService(helloService, "Java!");
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            if (nameService != null) {
-                nameService.close();
-            }
         }
     }
 
@@ -67,5 +53,10 @@ public class ClientBootstrap {
 
     private static URI getNameServiceUri(String tmpDir, String nameServiceFileName) {
         return URI.create("file://" + tmpDir + File.separator + nameServiceFileName);
+    }
+
+    private static void invokeHelloService(HelloService helloService, String arg) {
+        String res = helloService.hello(arg);
+        log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
     }
 }
