@@ -1,5 +1,6 @@
 package com.github.monsterhxw.rpc.netty.transport.netty;
 
+import com.github.monsterhxw.rpc.netty.transport.InFlightRequestManager;
 import com.github.monsterhxw.rpc.netty.transport.Transport;
 import com.github.monsterhxw.rpc.netty.transport.TransportClient;
 import com.github.monsterhxw.rpc.netty.transport.exception.RemotingConnectionException;
@@ -21,9 +22,12 @@ public class NettyClient implements TransportClient {
 
     private final ConcurrentHashMap<String, Transport> TRANSPORT_MAP = new ConcurrentHashMap<>();
 
+    private final InFlightRequestManager inFlightRequestManager = new InFlightRequestManager();
+
     @Override
-    public Transport createTransport(SocketAddress address, int connectionTimeout) throws InterruptedException, TimeoutException, RemotingConnectionException {
-        return TRANSPORT_MAP.computeIfAbsent(address.toString(), __ -> new NettyTransport(address, connectionTimeout));
+    public Transport createTransport(SocketAddress address, int connectionTimeoutMillis, int timeoutMillis) throws InterruptedException, TimeoutException, RemotingConnectionException {
+        return TRANSPORT_MAP.computeIfAbsent(address.toString(),
+                __ -> new NettyTransport(address, connectionTimeoutMillis, timeoutMillis, inFlightRequestManager));
     }
 
     @Override
@@ -37,6 +41,12 @@ public class NettyClient implements TransportClient {
                 }
             });
             TRANSPORT_MAP.clear();
+        }
+
+        try {
+            inFlightRequestManager.close();
+        } catch (IOException ignore) {
+            log.warn("Failed to close inFlightRequestManager.", ignore);
         }
     }
 }

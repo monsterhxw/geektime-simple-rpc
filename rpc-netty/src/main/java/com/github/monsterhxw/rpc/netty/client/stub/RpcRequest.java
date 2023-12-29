@@ -27,4 +27,13 @@ public class RpcRequest {
     public byte[] getSerializedArguments() {
         return serializedArguments;
     }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("RpcRequest{");
+        sb.append("interfaceName='").append(interfaceName).append('\'');
+        sb.append(", methodName='").append(methodName).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
 }

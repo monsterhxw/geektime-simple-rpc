@@ -36,13 +36,10 @@ public class NettyServer implements TransportServer {
 
     private ServerBootstrap serverBootstrap;
 
-    private RequestInvocationHandler requestInvocationHandler = RequestInvocationHandler.getInstance();
-
     @Override
     public void start(RequestHandlerRegistry requestHandlerRegistry, int port) throws Exception {
         this.port = port;
-        this.requestInvocationHandler.setRequestHandlerRegistry(requestHandlerRegistry);
-        this.serverBootstrap = getAndCreateServerBootstrap(port);
+        this.serverBootstrap = getAndCreateServerBootstrap(port, requestHandlerRegistry);
 
         doBindAndListen(serverBootstrap);
     }
@@ -65,7 +62,7 @@ public class NettyServer implements TransportServer {
         }
     }
 
-    private ServerBootstrap getAndCreateServerBootstrap(int port) {
+    private ServerBootstrap getAndCreateServerBootstrap(int port, RequestHandlerRegistry requestHandlerRegistry) {
         if (serverBootstrap != null) {
             return serverBootstrap;
         }
@@ -84,7 +81,7 @@ public class NettyServer implements TransportServer {
                         ch.pipeline()
                                 .addLast(new RequestDecoder())
                                 .addLast(new ResponseEncoder())
-                                .addLast(requestInvocationHandler);
+                                .addLast(new RequestInvocationHandler(requestHandlerRegistry));
                     }
                 });
         return serverBootstrap;

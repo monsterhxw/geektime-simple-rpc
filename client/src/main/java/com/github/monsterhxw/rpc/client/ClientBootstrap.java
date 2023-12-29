@@ -37,8 +37,19 @@ public class ClientBootstrap {
             log.info("Get service stub: {}.", helloService);
 
             // remote call helloService#hello
-            String res = helloService.hello("World!");
-            log.info("Remote call helloService#hello(\"World!\") return: {}.", res);
+            String arg = "World!";
+            String res = helloService.hello(arg);
+            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
+
+            // remote call helloService#hello
+            arg = "Huang Xuewei";
+            res = helloService.hello(arg);
+            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
+
+            // remote call helloService#hello
+            arg = "Your Argument Here";
+            res = helloService.hello(arg);
+            log.info("Remote call helloService#hello(\"{}\") return: {}.", arg, res);
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {

@@ -5,8 +5,6 @@ import com.github.monsterhxw.rpc.netty.transport.RequestHandlerRegistry;
 import com.github.monsterhxw.rpc.netty.transport.command.Code;
 import com.github.monsterhxw.rpc.netty.transport.command.Command;
 import com.github.monsterhxw.rpc.netty.transport.command.CommandSupport;
-import com.github.monsterhxw.rpc.netty.transport.command.ResponseHeader;
-import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import org.slf4j.Logger;
@@ -16,12 +14,15 @@ import org.slf4j.LoggerFactory;
  * @author huangxuewei
  * @since 2023/12/27
  */
-@ChannelHandler.Sharable
 public class RequestInvocationHandler extends SimpleChannelInboundHandler<Command> {
 
     private static final Logger log = LoggerFactory.getLogger(RequestInvocationHandler.class);
 
-    private RequestHandlerRegistry requestHandlerRegistry;
+    private final RequestHandlerRegistry requestHandlerRegistry;
+
+    public RequestInvocationHandler(RequestHandlerRegistry requestHandlerRegistry) {
+        this.requestHandlerRegistry = requestHandlerRegistry;
+    }
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Command request) throws Exception {
@@ -61,17 +62,5 @@ public class RequestInvocationHandler extends SimpleChannelInboundHandler<Comman
         }
 
         return null;
-    }
-
-    public static RequestInvocationHandler getInstance() {
-        return RequestInvocationHandlerHolder.INSTANCE;
-    }
-
-    public void setRequestHandlerRegistry(RequestHandlerRegistry requestHandlerRegistry) {
-        this.requestHandlerRegistry = requestHandlerRegistry;
-    }
-
-    private static class RequestInvocationHandlerHolder {
-        private static final RequestInvocationHandler INSTANCE = new RequestInvocationHandler();
     }
 }

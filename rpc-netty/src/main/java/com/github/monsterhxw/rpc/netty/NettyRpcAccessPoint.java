@@ -55,7 +55,7 @@ public class NettyRpcAccessPoint implements RpcAccessPoint {
         Transport transport;
         try {
             initializeClient();
-            transport = client.createTransport(new InetSocketAddress(host, port), 3_000);
+            transport = client.createTransport(new InetSocketAddress(host, port), 3_000, 20_000);
         } catch (ServiceLoadException | RemotingConnectionException | InterruptedException | TimeoutException e) {
             throw new RuntimeException(e);
         }
@@ -109,10 +109,13 @@ public class NettyRpcAccessPoint implements RpcAccessPoint {
         }
     }
 
-    private <T> T createStub(Transport transport, Class<T> serviceClass) {
+    private <T> T createStub(Transport transport, Class<T> interfaceClass) {
+        if (!interfaceClass.isInterface()) {
+            throw new RuntimeException(String.format("%s is not an interface", interfaceClass.getName()));
+        }
         try {
             initializeStubFactory();
-            return stubFactory.createStub(transport, serviceClass);
+            return stubFactory.createStub(transport, new Class<?>[]{interfaceClass});
         } catch (ServiceLoadException e) {
             throw new RuntimeException(e);
         }

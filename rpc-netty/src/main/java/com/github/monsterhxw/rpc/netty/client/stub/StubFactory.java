@@ -8,5 +8,5 @@ import com.github.monsterhxw.rpc.netty.transport.Transport;
  */
 public interface StubFactory {
 
-    <T> T createStub(Transport transport, Class<T> serviceClass);
+    <T> T createStub(Transport transport, Class<?>[] interfaces);
 }

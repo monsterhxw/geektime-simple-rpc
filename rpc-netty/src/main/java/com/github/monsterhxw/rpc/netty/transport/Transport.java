@@ -12,4 +12,6 @@ import java.util.concurrent.CompletableFuture;
 public interface Transport extends Closeable {
 
     CompletableFuture<Command> send(Command request);
+
+    long getTimeoutMillis();
 }

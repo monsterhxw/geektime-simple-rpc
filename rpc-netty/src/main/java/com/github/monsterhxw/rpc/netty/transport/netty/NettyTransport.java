@@ -1,9 +1,13 @@
 package com.github.monsterhxw.rpc.netty.transport.netty;
 
+import com.github.monsterhxw.rpc.netty.transport.InFlightRequestManager;
+import com.github.monsterhxw.rpc.netty.transport.ResponseFuture;
 import com.github.monsterhxw.rpc.netty.transport.Transport;
 import com.github.monsterhxw.rpc.netty.transport.command.Command;
+import com.github.monsterhxw.rpc.netty.transport.exception.RemotingConnectionException;
 import com.github.monsterhxw.rpc.netty.transport.netty.codec.RequestEncoder;
 import com.github.monsterhxw.rpc.netty.transport.netty.codec.ResponseDecoder;
+import com.github.monsterhxw.rpc.netty.transport.netty.handler.ResponseInvocationHandler;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -34,9 +38,11 @@ public class NettyTransport implements Transport {
 
     private static final Logger log = LoggerFactory.getLogger(NettyTransport.class);
 
+    private static final long LOCK_TIMEOUT_MILLIS = 3_000L;
+
     private final Bootstrap bootstrap;
 
-    private final int connectionTimeout;
+    private int connectionTimeoutMillis = 5_000;
 
     private final SocketAddress address;
 
@@ -44,14 +50,15 @@ public class NettyTransport implements Transport {
 
     private final Lock lockChannelTables = new ReentrantLock();
 
-    private static final long LOCK_TIMEOUT_MILLIS = 3_000L;
+    private long timeoutMillis = 10_000L;
 
-    public NettyTransport(SocketAddress address, int connectionTimeout) {
+    private final InFlightRequestManager inFlightRequestManager;
+
+    public NettyTransport(SocketAddress address, int connectionTimeoutMillis, int timeoutMillis, InFlightRequestManager inFlightRequestManager) {
         this.address = address;
-
-        connectionTimeout = connectionTimeout <= 0 ? 1_000 : connectionTimeout;
-        connectionTimeout = Math.min(connectionTimeout, 5_000);
-        this.connectionTimeout = connectionTimeout;
+        this.connectionTimeoutMillis = connectionTimeoutMillis <= 0 ? this.connectionTimeoutMillis : Math.min(connectionTimeoutMillis, this.connectionTimeoutMillis);
+        this.timeoutMillis = timeoutMillis <= 0 ? this.timeoutMillis : Math.min(timeoutMillis, this.timeoutMillis);
+        this.inFlightRequestManager = inFlightRequestManager;
 
         NioEventLoopGroup ioWorkerGroup = new NioEventLoopGroup();
         this.bootstrap = new Bootstrap()
@@ -59,7 +66,7 @@ public class NettyTransport implements Transport {
                 .channel(Epoll.isAvailable() ? EpollSocketChannel.class : NioSocketChannel.class)
                 .option(ChannelOption.TCP_NODELAY, true)
                 .option(ChannelOption.SO_KEEPALIVE, false)
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeout)
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, connectionTimeoutMillis)
                 .handler(new ChannelInitializer<SocketChannel>() {
 
                     @Override
@@ -67,26 +74,65 @@ public class NettyTransport implements Transport {
                         ch.pipeline()
                                 .addLast(new ResponseDecoder())
                                 .addLast(new RequestEncoder())
-//                                        .addLast(ResponseInvocation.getInstance())
-                        ;
+                                .addLast(new ResponseInvocationHandler(inFlightRequestManager));
                     }
                 });
-
-//        String addr = address.toString();
-//        Channel channel = this.getAndCreateChannel(address, connectionTimeout);
-//        if (null != channel && channel.isActive()) {
-//
-//        } else {
-//            this.closeChannelAndRemoveFromChannelTables(addr, channel);
-//            throw new RemotingConnectionException(addr);
-//        }
-//        return null;
-
     }
 
     @Override
     public CompletableFuture<Command> send(Command request) {
-        return null;
+        int requestId = request.getHeader().getRequestId();
+
+        CompletableFuture<Command> future = new CompletableFuture<>();
+
+        Channel channel;
+        String addr = this.address.toString();
+
+        try {
+            // get channel
+            channel = this.getAndCreateChannel(this.address);
+            if (null == channel || !channel.isActive()) {
+                this.closeChannelAndRemoveFromChannelTables(addr, channel);
+                throw new RemotingConnectionException(addr);
+            }
+
+            // add request to in-flight
+            this.inFlightRequestManager.putResponseFuture(new ResponseFuture(requestId, timeoutMillis, future));
+
+            // send request
+            channel.writeAndFlush(request).addListener(f -> {
+                if (!f.isSuccess()) {
+                    future.completeExceptionally(f.cause());
+                }
+            });
+
+        } catch (Throwable e) {
+            log.error("Failed to send request [{}] to address: {}", request.getHeader(), addr, e);
+            this.inFlightRequestManager.removeResponseFuture(requestId);
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
+    @Override
+    public long getTimeoutMillis() {
+        return timeoutMillis;
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (null != bootstrap) {
+            bootstrap.group()
+                    .shutdownGracefully()
+                    .addListener(f -> log.info("Netty client group shutdown."));
+        }
+        if (!channelTables.isEmpty()) {
+            for (Map.Entry<String, ChannelFuture> entry : channelTables.entrySet()) {
+                closeChannelAndRemoveFromChannelTables(entry.getKey(), entry.getValue().channel());
+            }
+            channelTables.clear();
+        }
     }
 
     private Channel getAndCreateChannel(SocketAddress address) throws InterruptedException {
@@ -134,7 +180,7 @@ public class NettyTransport implements Transport {
             log.warn("createChannel: try lock channel table timeout, but timeout {} ms", LOCK_TIMEOUT_MILLIS);
         }
 
-        if (null != channelFuture && channelFuture.awaitUninterruptibly(this.connectionTimeout)) {
+        if (null != channelFuture && channelFuture.awaitUninterruptibly(this.connectionTimeoutMillis)) {
             if (isChannelOK(channelFuture)) {
                 log.info("createChannel: success to connect remote host {}", address);
                 return channelFuture.channel();
@@ -181,21 +227,6 @@ public class NettyTransport implements Transport {
             }
         } catch (InterruptedException e) {
             log.error("closeChannel: failed to close channel, caused by: ", e);
-        }
-    }
-
-    @Override
-    public void close() throws IOException {
-        if (null != bootstrap) {
-            bootstrap.group()
-                    .shutdownGracefully()
-                    .addListener(f -> log.info("Netty client group shutdown."));
-        }
-        if (!channelTables.isEmpty()) {
-            for (Map.Entry<String, ChannelFuture> entry : channelTables.entrySet()) {
-                closeChannelAndRemoveFromChannelTables(entry.getKey(), entry.getValue().channel());
-            }
-            channelTables.clear();
         }
     }
 }

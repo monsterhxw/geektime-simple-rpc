@@ -11,7 +11,7 @@ import java.util.concurrent.TimeoutException;
  */
 public interface TransportClient {
 
-    Transport createTransport(SocketAddress address, int connectionTimeout) throws InterruptedException, TimeoutException, RemotingConnectionException;
+    Transport createTransport(SocketAddress address, int connectionTimeoutMillis, int timeoutMillis) throws InterruptedException, TimeoutException, RemotingConnectionException;
 
     void stop();
 }
